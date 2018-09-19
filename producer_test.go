@@ -24,7 +24,8 @@ func TestSendSync(t *testing.T) {
 		if sendResult, err := producer.Send(msg); err != nil {
 			t.Error("Sync sending fail!")
 		} else {
-			t.Logf("Sync sending success, %d, %v", i, sendResult)
+			_ = sendResult
+			t.Logf("Sync sending success, %d", i)
 		}
 	}
 
