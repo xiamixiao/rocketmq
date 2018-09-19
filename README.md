@@ -11,16 +11,16 @@ group := "dev-VodHotClacSrcData"
 topic := "canal_vod_collect__video_collected_count_live"
 var timeSleep = 30 * time.Second
 conf := &rocketmq.Config{
-    Nameserver:   "192.168.7.101:9876;192.168.7.102:9876;192.168.7.103:9876",
+    Namesrv:   "192.168.7.101:9876;192.168.7.102:9876;192.168.7.103:9876",
     ClientIp:     "192.168.1.23",
     InstanceName: "DEFAULT",
 }
 
-consumer, err := rocketmq.NewDefaultConsumer(consumerGroup, consumerConf)
+consumer, err := rocketmq.NewDefaultConsumer(group, conf)
 if err != nil {
     return err
 }
-consumer.Subscribe(consumerTopic, "*")
+consumer.Subscribe(topic, "*")
 consumer.RegisterMessageListener(
     func(msgs []*MessageExt) error {
         for i, msg := range msgs {
@@ -40,7 +40,7 @@ time.Sleep(timeSleep)
 group := "dev-VodHotClacSrcData"
 topic := "canal_vod_collect__video_collected_count_live"
 conf := &rocketmq.Config{
-    Nameserver:   "192.168.7.101:9876;192.168.7.102:9876;192.168.7.103:9876",
+    Namesrv:   "192.168.7.101:9876;192.168.7.102:9876;192.168.7.103:9876",
     ClientIp:     "192.168.1.23",
     InstanceName: "DEFAULT",
 }
@@ -50,7 +50,7 @@ producer.Start()
 if err != nil {
     return errors.New("NewDefaultProducer err")
 }
-msg := NewMessage(topic, []byte("Hello RocketMQ!")
+msg := NewMessage(topic, []byte("Hello RocketMQ!"))
 if sendResult, err := producer.Send(msg); err != nil {
     return errors.New("Sync sending fail!")
 } else {
@@ -63,7 +63,7 @@ if sendResult, err := producer.Send(msg); err != nil {
 group := "dev-VodHotClacSrcData"
 topic := "canal_vod_collect__video_collected_count_live"
 conf := &rocketmq.Config{
-    Nameserver:   "192.168.7.101:9876;192.168.7.102:9876;192.168.7.103:9876",
+    Namesrv:   "192.168.7.101:9876;192.168.7.102:9876;192.168.7.103:9876",
     ClientIp:     "192.168.1.23",
     InstanceName: "DEFAULT",
 }
@@ -72,7 +72,7 @@ producer.Start()
 if err != nil {
     return err
 }
-msg := NewMessage(topic, []byte("Hello RocketMQ!")
+msg := NewMessage(topic, []byte("Hello RocketMQ!"))
 sendCallback := func() error {
     fmt.Println("I am callback")
     return nil
@@ -89,7 +89,7 @@ if err := producer.SendAsync(msg, sendCallback); err != nil {
 group := "dev-VodHotClacSrcData"
 topic := "canal_vod_collect__video_collected_count_live"
 conf := &rocketmq.Config{
-    Nameserver:   "192.168.7.101:9876;192.168.7.102:9876;192.168.7.103:9876",
+    Namesrv:   "192.168.7.101:9876;192.168.7.102:9876;192.168.7.103:9876",
     ClientIp:     "192.168.1.23",
     InstanceName: "DEFAULT",
 }
@@ -98,7 +98,7 @@ producer.Start()
 if err != nil {
     return err
 }
-msg := NewMessage(topic, []byte("Hello RocketMQ!")
+msg := NewMessage(topic, []byte("Hello RocketMQ!"))
 if err := producer.SendOneway(msg); err != nil {
     return err
 } else {
