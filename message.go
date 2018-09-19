@@ -125,7 +125,7 @@ func decodeMessage(data []byte) []*MessageExt {
 		}
 
 		if magicCode != -626843481 {
-			fmt.Println("magic code is error %d", magicCode)
+			fmt.Printf("magic code is error %d\r\n", magicCode)
 			return nil
 		}
 

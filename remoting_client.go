@@ -59,7 +59,7 @@ func (d *DefaultRemotingClient) ScanResponseTable() {
 			delete(d.responseTable, seq)
 			if response.invokeCallback != nil {
 				response.invokeCallback(nil)
-				fmt.Println("remove time out request %v", response)
+				fmt.Printf("remove time out request %v\r\n", response)
 			}
 		}
 	}
