@@ -9,10 +9,9 @@ import (
 )
 
 func main() {
-	group := "yyyw-monitor-dev.novalocal"
-	topic := "TopicTest"
+	var group, topic = "broker-c", "goclienttopic"
 	conf := &rocketmq.Config{
-		Namesrv: "10.100.158.212:9876",
+		Namesrv: "10.100.159.200:9876;10.100.157.34:9876",
 		// ClientIp:     "192.168.1.23",
 		InstanceName: "DEFAULT",
 	}

@@ -8,10 +8,9 @@ import (
 )
 
 func main() {
-	group := "yyyw-monitor-dev.novalocal"
-	topic := "TopicTest"
+	var group, topic = "broker-c", "goclienttopic"
 	conf := &rocketmq.Config{
-		Namesrv: "10.100.158.212:9876",
+		Namesrv: "10.100.159.200:9876;10.100.157.34:9876",
 		// ClientIp:     "192.168.1.23",
 		InstanceName: "DEFAULT",
 	}
@@ -20,7 +19,6 @@ func main() {
 	if err != nil {
 		glog.Errorln(err)
 	}
-	msg := rocketmq.NewMessage(topic, []byte("Hello RocketMQ!"))
 	sendCallback := func() error {
 		fmt.Println("I am callback")
 		return nil
@@ -28,12 +26,13 @@ func main() {
 	i := 0
 	for {
 		i++
+		msg := rocketmq.NewMessage(topic, []byte(fmt.Sprintf("Hello TurboMQ!%d", i)))
 		if err := producer.SendAsync(msg, sendCallback); err != nil {
 			glog.Errorln(err)
 		} else {
 			fmt.Println("Async sending success!")
 		}
-		if i == 10 {
+		if i == 100 {
 			break
 		}
 	}

@@ -564,9 +564,11 @@ func (m *MqClient) start() {
 			m.defaultProducer.start(false)
 		}
 		fmt.Fprintf(os.Stderr, "The client factory [%s] start OK", m.clientId)
+		fmt.Println()
 		m.serviceState = Running
 	case Running, ShutdownAlready, StartFailed:
 		fmt.Fprintf(os.Stderr, "The Factory object[%s] has been created before, and failed.", m.clientId)
+		fmt.Println()
 	}
 
 }
