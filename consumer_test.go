@@ -5,21 +5,19 @@ import (
 	"time"
 )
 
-var consumerGroup = "dev-goProducerConsumerTest"
-var consumerTopic = "goProducerConsumerTest"
-var sleep = 60 * time.Second
-var consumerConf = &Config{
-	Namesrv:      "192.168.7.101:9876;192.168.7.102:9876;192.168.7.103:9876",
-	ClientIp:     "192.168.23.137",
-	InstanceName: "DEFAULT_tt",
+var cGroup, cTopic = "consumerGroup", "ifp_fare"
+var cConf = &Config{
+	Namesrv: "10.100.159.200:9876;10.100.157.34:9876",
+	// ClientIp:     "192.168.1.23",
+	InstanceName: "DEFAULT",
 }
 
 func TestConsume(t *testing.T) {
-	consumer, err := NewDefaultConsumer(consumerGroup, consumerConf)
+	consumer, err := NewDefaultConsumer(cGroup, cConf)
 	if err != nil {
-		t.Fatalf("NewDefaultConsumer err, %s", err)
+		t.Error(err)
 	}
-	consumer.Subscribe(consumerTopic, "*")
+	consumer.Subscribe(cTopic, "*")
 	consumer.RegisterMessageListener(
 		func(msgs []*MessageExt) error {
 			for i, msg := range msgs {
@@ -30,5 +28,5 @@ func TestConsume(t *testing.T) {
 		})
 	consumer.Start()
 
-	time.Sleep(sleep)
+	time.Sleep(60 * time.Second)
 }

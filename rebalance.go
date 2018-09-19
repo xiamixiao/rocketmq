@@ -145,7 +145,7 @@ func (r *Rebalance) rebalanceByTopic(topic string) error {
 		return err
 	}
 
-	fmt.Printf("rebalance topic[%s]\n", topic)
+	fmt.Println("rebalance topic[%s]\n", topic)
 	r.updateProcessQueueTableInRebalance(topic, allocateResult)
 	return nil
 }

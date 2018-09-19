@@ -1,52 +1,65 @@
 package rocketmq
 
 import (
-	"strconv"
+	"fmt"
 	"testing"
 )
 
-var producerGroup = "dev-goProducerConsumerTest"
-var topic = "goProducerConsumerTest"
-var conf = &Config{
-	Namesrv:      "192.168.7.101:9876;192.168.7.102:9876;192.168.7.103:9876",
-	ClientIp:     "192.168.23.137",
-	InstanceName: "DEFAULT_tt",
+var pGroup, pTopic = "BasePayment", "ifp_fare"
+var pConf = &Config{
+	Namesrv: "10.100.159.200:9876;10.100.157.34:9876",
+	// ClientIp:     "192.168.1.23",
+	InstanceName: "DEFAULT",
 }
 
-func TestSend(t *testing.T) {
-	producer, err := NewDefaultProducer(producerGroup, conf)
-	producer.Start()
+func TestSendSync(t *testing.T) {
+	producer, err := NewDefaultProducer(pGroup, pConf)
 	if err != nil {
-		t.Fatalf("NewDefaultProducer err, %s", err)
+		t.Error(err)
+		return
 	}
-	for i := 0; i < 3; i++ {
-		msg := NewMessage(topic, []byte("Hello RocketMQ "+strconv.Itoa(i)))
+	producer.Start()
+	for i := 0; i < 100; i++ {
+		msg := NewMessage(pTopic, []byte(fmt.Sprintf("Hello turboMQ(sync), %d", i)))
 		if sendResult, err := producer.Send(msg); err != nil {
-			t.Fatalf("Sync sending fail!, %s", err.Error())
+			t.Error("Sync sending fail!")
 		} else {
-			t.Log("sendResult", sendResult)
-			t.Logf("Sync sending success, %d", i)
-			//t.Logf("sendResult.sendStatus", sendResult.sendStatus)
-			//t.Logf("sendResult.msgId", sendResult.msgId)
-			//t.Logf("sendResult.messageQueue", sendResult.messageQueue)
-			//t.Logf("sendResult.queueOffset", sendResult.queueOffset)
-			//t.Logf("sendResult.transactionId", sendResult.transactionId)
-			//t.Logf("sendResult.offsetMsgId", sendResult.offsetMsgId)
-			//t.Logf("sendResult.regionId", sendResult.regionId)
+			t.Logf("Sync sending success, %d, %v", i, sendResult)
 		}
 	}
 
 	t.Log("Sync sending success!")
 }
 
-func TestSendOneway(t *testing.T) {
-	producer, err := NewDefaultProducer(producerGroup, conf)
+func TestSendAsync(t *testing.T) {
+	producer, err := NewDefaultProducer(pGroup, pConf)
 	producer.Start()
+	if err != nil {
+		t.Error(err)
+	}
+	sendCallback := func() error {
+		t.Log("I am callback")
+		return nil
+	}
+	for i := 0; i < 100; i++ {
+		msg := NewMessage(pTopic, []byte(fmt.Sprintf("Hello TurboMQ(async), %d", i)))
+		if err := producer.SendAsync(msg, sendCallback); err != nil {
+			t.Error(err)
+		} else {
+			t.Logf("Async sending success,%d", i)
+		}
+	}
+	t.Log("Async sending success!")
+}
+
+func TestSendOneway(t *testing.T) {
+	producer, err := NewDefaultProducer(pGroup, pConf)
 	if err != nil {
 		t.Fatalf("NewDefaultProducer err, %s", err)
 	}
-	for i := 0; i < 3; i++ {
-		msg := NewMessage(topic, []byte("Hello RocketMQ "+strconv.Itoa(i)))
+	producer.Start()
+	for i := 0; i < 100; i++ {
+		msg := NewMessage(pTopic, []byte(fmt.Sprintf("Hello TurboMQ(oneway), %d", i)))
 		if err := producer.SendOneway(msg); err != nil {
 			t.Fatalf("Oneway sending fail! %s", err.Error())
 		} else {
@@ -55,26 +68,4 @@ func TestSendOneway(t *testing.T) {
 	}
 
 	t.Log("Oneway sending success!")
-}
-
-func TestSendAsync(t *testing.T) {
-	producer, err := NewDefaultProducer(producerGroup, conf)
-	producer.Start()
-	if err != nil {
-		t.Fatalf("NewDefaultProducer err, %s", err)
-	}
-	for i := 0; i < 3; i++ {
-		msg := NewMessage(topic, []byte("Hello RocketMQ "+strconv.Itoa(i)))
-		sendCallback := func() error {
-			t.Logf("I am callback")
-			return nil
-		}
-		if err := producer.SendAsync(msg, sendCallback); err != nil {
-			t.Fatalf("Async sending fail! %s", err.Error())
-		} else {
-			t.Logf("Async sending success, %d", i)
-		}
-	}
-
-	t.Log("Async sending success!")
 }
