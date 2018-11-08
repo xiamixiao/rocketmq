@@ -2,7 +2,7 @@
 A RocketMQ client for golang supportting producer and consumer.
 
 # Import package
-import "github.com/sevenNt/rocketmq"
+import "rocketmq"
 
 # Getting started
 ### Getting message with consumer
@@ -12,7 +12,7 @@ topic := "canal_vod_collect__video_collected_count_live"
 var timeSleep = 30 * time.Second
 conf := &rocketmq.Config{
     Namesrv:   "192.168.7.101:9876;192.168.7.102:9876;192.168.7.103:9876",
-    ClientIp:     "192.168.1.23",
+    // ClientIp:     "192.168.1.23",
     InstanceName: "DEFAULT",
 }
 
@@ -35,13 +35,43 @@ time.Sleep(timeSleep)
 ```
 
 ### Sending message with producer
+- Synchronous Batch sending
+```
+pGroup := "dev-VodHotClacSrcData"
+pTopic := "canal_vod_collect__video_collected_count_live"
+conf := &rocketmq.Config{
+    Namesrv:   "10.100.41.47:9876",
+    // ClientIp:     "192.168.1.23",
+    InstanceName: "DEFAULT",
+}
+
+producer, err := rocketmq.NewDefaultProducer(pGroup, pConfBatch)
+if err != nil {
+    fmt.Println(err)
+    return
+}
+producer.Start()
+var msgs []*rocketmq.Message
+for i := 0; i < 100; i++ {
+    msg := rocketmq.NewMessage(pTopic, []byte(fmt.Sprintf("Hello turboMQ(10-25 11:05)(batch sync), %d", i)))
+    msg.Properties["WAIT"] = "true"
+    msgs = append(msgs, msg)
+}
+
+if sendResult, err := producer.SendBatchSync(msgs); err != nil {
+    fmt.Println("Sync sending fail!")
+} else {
+    fmt.Println(*sendResult)
+}
+```
+
 - Synchronous sending
 ```
 group := "dev-VodHotClacSrcData"
 topic := "canal_vod_collect__video_collected_count_live"
 conf := &rocketmq.Config{
     Namesrv:   "192.168.7.101:9876;192.168.7.102:9876;192.168.7.103:9876",
-    ClientIp:     "192.168.1.23",
+    // ClientIp:     "192.168.1.23",
     InstanceName: "DEFAULT",
 }
 
@@ -64,7 +94,7 @@ group := "dev-VodHotClacSrcData"
 topic := "canal_vod_collect__video_collected_count_live"
 conf := &rocketmq.Config{
     Namesrv:   "192.168.7.101:9876;192.168.7.102:9876;192.168.7.103:9876",
-    ClientIp:     "192.168.1.23",
+    // ClientIp:     "192.168.1.23",
     InstanceName: "DEFAULT",
 }
 producer, err := rocketmq.NewDefaultProducer(group, conf)
@@ -90,7 +120,7 @@ group := "dev-VodHotClacSrcData"
 topic := "canal_vod_collect__video_collected_count_live"
 conf := &rocketmq.Config{
     Namesrv:   "192.168.7.101:9876;192.168.7.102:9876;192.168.7.103:9876",
-    ClientIp:     "192.168.1.23",
+    // ClientIp:     "192.168.1.23",
     InstanceName: "DEFAULT",
 }
 producer, err := rocketmq.NewDefaultProducer(group, conf)

@@ -30,7 +30,7 @@ type RemotingCommand struct {
 	Version   int         `json:"version"`
 	Opaque    int32       `json:"opaque"`
 	Flag      int         `json:"flag"`
-	remark    string      `json:"remark"`
+	Remark    string      `json:"remark"`
 	ExtFields interface{} `json:"extFields"`
 	// body
 	Body []byte `json:"body,omitempty"`

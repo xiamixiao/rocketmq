@@ -169,4 +169,7 @@ const (
 
 	// 查看Broker上的各种统计信息
 	ViewBrokerStatsData = 315
+
+	// 批量生产消息
+	SendMessageBatch = 326
 )

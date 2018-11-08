@@ -14,6 +14,7 @@ type Producer interface {
 	Start() error
 	Shutdown()
 	Send(msg *Message) (*SendResult, error)
+	SendBatchSync(msg []*Message) (*SendResult, error)
 	SendAsync(msg *Message, sendCallback SendCallback) error
 	SendOneway(msg *Message) error
 }
@@ -23,6 +24,7 @@ const (
 	Sync = iota
 	Async
 	Oneway
+	SyncBatch
 )
 
 // ServiceState
@@ -156,6 +158,18 @@ func (d *DefaultProducer) Send(msg *Message) (*SendResult, error) {
 	return d.send(msg, Sync, nil, d.sendMsgTimeout)
 }
 
+// SendBatchSync 批量生产
+func (d *DefaultProducer) SendBatchSync(msgs []*Message) (*SendResult, error) {
+	var list []*Message
+	var err error
+	if list, err = d.checkList(msgs); err != nil {
+		return nil, err
+	}
+	msg := d.buildMessageBatch(list)
+	return d.send(msg, SyncBatch, nil, d.sendMsgTimeout)
+	// return nil, nil
+}
+
 func (d *DefaultProducer) SendAsync(msg *Message, sendCallback SendCallback) (err error) {
 	_, err = d.send(msg, Async, sendCallback, d.sendMsgTimeout)
 	return
@@ -166,21 +180,49 @@ func (d *DefaultProducer) SendOneway(msg *Message) error {
 	return nil
 }
 
+func (d *DefaultProducer) checkList(msgs []*Message) ([]*Message, error) {
+	if msgs == nil || len(msgs) == 0 {
+		return nil, errors.New("message list is nil")
+	}
+	var list []*Message
+	var err error
+	for _, msg := range msgs {
+		if err = msg.checkMessage(d); err != nil {
+			return nil, err
+		}
+		list = append(list, msg)
+	}
+
+	return list, nil
+}
+
+func (d *DefaultProducer) buildMessageBatch(msgs []*Message) *Message {
+	msg := &Message{
+		Flag:       msgs[0].Flag,
+		Topic:      msgs[0].Topic,
+		Properties: msgs[0].Properties,
+		Body:       encodeMessages(msgs),
+	}
+	return msg
+}
+
 func (d *DefaultProducer) send(msg *Message, communicationMode int, sendCallback SendCallback, timeout int64) (sendResult *SendResult, err error) {
 	if err = d.makeSureStateOK(); err != nil {
 		return
 	}
-	if err = msg.checkMessage(d); err != nil {
-		return
+	if communicationMode != SyncBatch {
+		if err = msg.checkMessage(d); err != nil {
+			return
+		}
 	}
 	topicPublishInfo := d.tryToFindTopicPublishInfo(msg.Topic)
 
 	// TODO handle topicPublishInfo
 	if topicPublishInfo.ok() {
 		timesTotal := 1
-		if communicationMode == Sync {
-			timesTotal = 1 + d.getRetryTimesWhenSendFailed()
-		}
+		// if communicationMode == Sync || communicationMode == SyncBatch {
+		// 	timesTotal = 1 + d.getRetryTimesWhenSendFailed()
+		// }
 
 		var mq *MessageQueue
 		brokersSent := make([]string, 0)
@@ -206,7 +248,7 @@ func (d *DefaultProducer) send(msg *Message, communicationMode int, sendCallback
 					return
 				case Oneway:
 					return
-				case Sync:
+				case Sync, SyncBatch:
 					if sendResult.sendStatus != SendStatusOK {
 						if d.retryAnotherBrokerWhenNotStoreOK {
 							continue
@@ -259,7 +301,7 @@ func (d *DefaultProducer) sendKernel(msg *Message, mq *MessageQueue, communicati
 		brokerAddr = BrokerVIPChannel(d.vipChannelEnabled, brokerAddr)
 		prevBody := msg.Body
 
-		MessageClientIDSetter.setUniqID(msg)
+		// MessageClientIDSetter.setUniqID(msg)
 
 		sysFlag := 0
 		if d.tryToCompressMessage(msg) {
@@ -284,8 +326,9 @@ func (d *DefaultProducer) sendKernel(msg *Message, mq *MessageQueue, communicati
 		requestHeader.DefaultTopicQueueNums = d.defaultTopicQueueNums
 		requestHeader.QueueId = mq.queueId
 		requestHeader.SysFlag = sysFlag
-		requestHeader.Properties = messageProperties2String(msg.Properties)
+		requestHeader.Properties = properties2String(msg.Properties)
 		requestHeader.ReconsumeTimes = 0
+		requestHeader.BornTimestamp = time.Now().Unix() * 1000
 
 		if strings.HasPrefix(requestHeader.Topic, RetryGroupTopicPrefix) {
 			if MessageConst.PropertyReconsumeTime != "" {
@@ -312,7 +355,7 @@ func (d *DefaultProducer) sendKernel(msg *Message, mq *MessageQueue, communicati
 				d.mqClient,
 				d.retryTimesWhenSendAsyncFailed,
 				context)
-		case Oneway, Sync:
+		case Oneway, Sync, SyncBatch:
 			sendResult, err = d.sendMessage(
 				brokerAddr,
 				mq.brokerName,
@@ -365,12 +408,19 @@ func (d *DefaultProducer) sendMessage(addr string, brokerName string, msg *Messa
 	retryTimesWhenSendFailed int, context *SendMessageContext) (sendResult *SendResult, err error) {
 	remotingCommand := new(RemotingCommand)
 	remotingCommand.Code = SendMsg
+	remotingCommand.ExtFields = requestHeader
+	// 增加批量发送
+	if communicationMode == SyncBatch {
+		requestHeaderV2 := new(SendMessageRequestHeaderV2)
+		requestHeaderV2.createSendMessageRequestHeaderV2(requestHeader)
+		remotingCommand.ExtFields = requestHeaderV2
+		remotingCommand.Code = SendMessageBatch
+	}
 	currOpaque := atomic.AddInt32(&opaque, 1)
 	remotingCommand.Opaque = currOpaque
 	remotingCommand.Flag = 0
 	remotingCommand.Language = "JAVA"
-	remotingCommand.Version = 79
-	remotingCommand.ExtFields = requestHeader
+	remotingCommand.Version = 145
 	remotingCommand.Body = msg.Body
 
 	switch communicationMode {
@@ -380,7 +430,7 @@ func (d *DefaultProducer) sendMessage(addr string, brokerName string, msg *Messa
 			retryTimesWhenSendFailed, times, context, d)
 	case Oneway:
 		err = d.remotingClient.invokeOneway(addr, remotingCommand, timeoutMillis)
-	case Sync:
+	case Sync, SyncBatch:
 		sendResult, err = d.sendMessageSync(addr, brokerName, msg, timeoutMillis, remotingCommand)
 	}
 

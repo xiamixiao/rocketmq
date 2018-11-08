@@ -263,10 +263,8 @@ func (m *MqClient) getTopicRouteInfoFromNameServer(topic string, timeoutMillis i
 			return nil, err
 		}
 		return topicRouteData, nil
-	} else {
-		return nil, errors.New(fmt.Sprintf("get topicRouteInfo from nameServer error[code:%d,topic:%s]", response.Code, topic))
 	}
-
+	return nil, errors.New(fmt.Sprintf("get topicRouteInfo from nameServer error[code:%d,topic:%s]", response.Code, topic))
 }
 
 func (m *MqClient) updateTopicRouteInfoFromNameServer() {

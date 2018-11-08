@@ -1,7 +1,10 @@
 package rocketmq
 
-import "testing"
+import (
+	"fmt"
+	"testing"
+)
 
-func TextGetLocalIp4(t testing.T) {
-	println(GetLocalIp4())
+func TestGetLocalIp4(t *testing.T) {
+	fmt.Println(GetLocalIp4())
 }
